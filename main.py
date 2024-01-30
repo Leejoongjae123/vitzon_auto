@@ -656,61 +656,64 @@ def UploadImageToS3(file_path):
         print("파일 업로드 실패:", e)
 
 
-
+firstFlag=True
 while True:
-    # # #=============ID가져오기=======
-    session=GetLogin()
-    with open ('dataList.json', "r",encoding='utf-8-sig') as f:
-        dataList = json.load(f)
-    dataList.reverse()
-    totalList=[]
-    timeStart=datetime.datetime.now().strftime("%H%M%S")
-    for data in dataList:
-        resultList=GetID(data,session)
-        totalList.extend(resultList)
-        with open('totalList.json', 'w',encoding='utf-8-sig') as f:
-            json.dump(totalList, f, indent=2,ensure_ascii=False)
-        timeNow=datetime.datetime.now().strftime("%H%M%S")
-        print("시작시간:{}/종료시간:{}".format(timeStart,timeNow))
+    currentTime=datetime.datetime.now().strftime("%H%M%S")
+    print("currentTime:",currentTime,"/ currentTime_TYPE:",type(currentTime))
+    if currentTime=="010000" or firstFlag==True:
+        # # #=============ID가져오기=======
+        session=GetLogin()
+        with open ('dataList.json', "r",encoding='utf-8-sig') as f:
+            dataList = json.load(f)
+        dataList.reverse()
+        totalList=[]
+        timeStart=datetime.datetime.now().strftime("%H%M%S")
+        for data in dataList:
+            resultList=GetID(data,session)
+            totalList.extend(resultList)
+            with open('totalList.json', 'w',encoding='utf-8-sig') as f:
+                json.dump(totalList, f, indent=2,ensure_ascii=False)
+            timeNow=datetime.datetime.now().strftime("%H%M%S")
+            print("시작시간:{}/종료시간:{}".format(timeStart,timeNow))
 
 
-    #===========데이타 불러오기========
-    with open ('totalList.json', "r",encoding='utf-8-sig') as f:
-        totalList = json.load(f)
-    MergeExcel()
-    inputList=GetExcel()
-    with open('inputList.json', 'w',encoding='utf-8-sig') as f:
-        json.dump(inputList, f, indent=2,ensure_ascii=False)
+        #===========데이타 불러오기========
+        with open ('totalList.json', "r",encoding='utf-8-sig') as f:
+            totalList = json.load(f)
+        MergeExcel()
+        inputList=GetExcel()
+        with open('inputList.json', 'w',encoding='utf-8-sig') as f:
+            json.dump(inputList, f, indent=2,ensure_ascii=False)
 
-    #================엑셀 기반으로 데이타 반영
-    for index,inputElem in enumerate(inputList):
-        timeNow=datetime.datetime.now().strftime("%H시%M분%S초")
-        productId = inputElem['자체상품코드'].replace("vitson_", "")
-        print("{}/{}번째(ID:{}) 확인중..(현재시간:{})".format(index+1,len(inputList),productId,timeNow))
-        # print("productId:",productId,"/ productId_TYPE:",type(productId))
-        # productId가 product_list의 self_product_code 중 하나와 일치하는지 확인
-        # productId와 일치하는 productCode를 가진 요소 찾기
-        matchedProduct = None
-        for item in totalList:
-            if str(item['productCode']) == str(productId):
-                matchedProduct = item
-                break
+        #================엑셀 기반으로 데이타 반영
+        for index,inputElem in enumerate(inputList):
+            timeNow=datetime.datetime.now().strftime("%H시%M분%S초")
+            productId = inputElem['자체상품코드'].replace("vitson_", "")
+            print("{}/{}번째(ID:{}) 확인중..(현재시간:{})".format(index+1,len(inputList),productId,timeNow))
+            # print("productId:",productId,"/ productId_TYPE:",type(productId))
+            # productId가 product_list의 self_product_code 중 하나와 일치하는지 확인
+            # productId와 일치하는 productCode를 가진 요소 찾기
+            matchedProduct = None
+            for item in totalList:
+                if str(item['productCode']) == str(productId):
+                    matchedProduct = item
+                    break
 
-        # 결과 출력
-        if matchedProduct:
-            print("● Matched Product:", matchedProduct)
-            statusType=True
-            MakeXML(matchedProduct,inputElem,statusType)
-            UploadImageToS3('change.xml')
-            ChangeProduct()
-            print("=====================")
-        else:
-            statusType = False
-            print("X Non-Matched Product:", matchedProduct)
-            MakeXML(matchedProduct, inputElem,statusType)
-            UploadImageToS3('change.xml')
-            ChangeProduct()
-
+            # 결과 출력
+            if matchedProduct:
+                print("● Matched Product:", matchedProduct)
+                statusType=True
+                MakeXML(matchedProduct,inputElem,statusType)
+                UploadImageToS3('change.xml')
+                ChangeProduct()
+                print("=====================")
+            else:
+                statusType = False
+                print("X Non-Matched Product:", matchedProduct)
+                MakeXML(matchedProduct, inputElem,statusType)
+                UploadImageToS3('change.xml')
+                ChangeProduct()
+    time.sleep(0.9)
 # # ================크롤링한 거 기반으로 데이타 반영 모드
 # for totalElem in totalList:
 #     productId="vitson_"+str(totalElem['productCode'])
